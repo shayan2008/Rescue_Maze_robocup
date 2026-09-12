@@ -1,19 +1,19 @@
-# Rescue Maze Robot — Team Kavosh
+# Rescue Maze Robot (Team Kavosh)
 
 Everything behind our **RoboCupJunior Rescue Maze** entry: the vision model that finds hazard markers, the robot's circuit and mechanical design, the controller code, and the team description paper.
 
 ## Victim and hazard detection
 
-`victim_detector_kits.py` is the perception pipeline. It runs a fine-tuned YOLO11 model over a live camera feed and decides — carefully — when a hazard marker is real enough to act on.
+`victim_detector_kits.py` is the perception pipeline. It runs a fine-tuned YOLO11 model over a live camera feed and decides, carefully, when a hazard marker is real enough to act on.
 
 The problem it solves: a single confident frame is not enough. Reflections, motion blur and partial views all produce convincing false positives, and dropping a rescue kit in the wrong place costs points. So detection is staged:
 
-1. **Inference** — YOLO11 (`best.pt`) at `IMGSZ = 640`, deliberately low `MODEL_PREDICT_CONF = 0.10` so nothing is discarded too early.
-2. **Clustering** — overlapping boxes (`CLUSTER_IOU = 0.35`) are merged and their labels voted by summed confidence, so one marker seen three ways becomes one detection.
-3. **Tracking** — a single smoothed track is maintained, tolerating short dropouts (`COUNT_DROPOUT_GRACE_SEC = 0.35`) rather than restarting on every missed frame.
-4. **Dwell gate** — a marker only counts after `REQUIRED_SEE_SEC = 2.0` of continuous observation, with `LABEL_DOMINANCE_MIN = 0.80` label agreement and a per-class confidence floor (omega is held to 0.87, the class most often confused).
-5. **Memory** — counted markers are remembered and cannot be recounted for `RECOUNT_AFTER_ABSENCE_SEC = 20.0`, which stops the robot scoring the same wall twice on a loop.
-6. **Scoring** — classes map to kit counts (`phi` → 2, `psi` → 1, `omega` → 0) and then to points.
+1. **Inference.** YOLO11 (`best.pt`) at `IMGSZ = 640`, deliberately low `MODEL_PREDICT_CONF = 0.10` so nothing is discarded too early.
+2. **Clustering.** Overlapping boxes (`CLUSTER_IOU = 0.35`) are merged and their labels voted by summed confidence, so one marker seen three ways becomes one detection.
+3. **Tracking.** A single smoothed track is maintained, tolerating short dropouts (`COUNT_DROPOUT_GRACE_SEC = 0.35`) rather than restarting on every missed frame.
+4. **Dwell gate.** A marker only counts after `REQUIRED_SEE_SEC = 2.0` of continuous observation, with `LABEL_DOMINANCE_MIN = 0.80` label agreement and a per-class confidence floor (omega is held to 0.87, the class most often confused).
+5. **Memory.** Counted markers are remembered and cannot be recounted for `RECOUNT_AFTER_ABSENCE_SEC = 20.0`, which stops the robot scoring the same wall twice on a loop.
+6. **Scoring.** Classes map to kit counts (`phi` → 2, `psi` → 1, `omega` → 0) and then to points.
 
 A live HUD shows totals, per-class counts and tracking state while the robot runs.
 
